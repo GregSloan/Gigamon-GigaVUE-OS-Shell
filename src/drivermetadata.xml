@@ -24,20 +24,13 @@
                 </Parameters>
             </Command>
             <Command Name="health_check"  Tags="" Description="Checks if the device is up and connectable"/>
-
-        </Category>
-        <!--<Command Name="ApplyConnectivityChanges" DisplayName="ApplyConnectivityChanges" Tags="allow_unreserved">-->
-            <!--<Parameters>-->
-                <!--<Parameter Name="request" Type="String" Mandatory = "True" DefaultValue="" Description=""/>-->
-            <!--</Parameters>-->
-        <!--</Command>-->
-        <Command Name="run_custom_command" DisplayName="Send Custom Command" Tags="" Description="Executes a custom command on the device">
+             <Command Name="run_custom_command" DisplayName="Send Custom Command" Tags="" Description="Executes a custom command on the device">
             <Parameters>
                 <Parameter Name="custom_command" Type="String" Mandatory = "True" DisplayName="Command" DefaultValue=""
                            Description="The command to run. Note that commands that require a response are not supported."/>
             </Parameters>
         </Command>
-        <Command Name="save" DisplayName="Save" Tags="" Description="Creates a configuration file and saves it to the provided destination">
+            <Command Name="save" DisplayName="Save" Tags="" Description="Creates a configuration file and saves it to the provided destination">
             <Parameters>
                 <Parameter Name="configuration_type" Type="Lookup" AllowedValues="Startup,Running" Mandatory = "True"  DefaultValue="Running"
                            DisplayName="Configuration Type" Description="Specify whether the file should update the startup or running config. 'Startup' configuration is not supported on all switches."/>
@@ -68,5 +61,42 @@
             </Parameters>
         </Command>
         <Command Name="reset" DisplayName="Reset" Tags="" Description="Resets the device to factory settings"/>
+            <Command Name="get_box_id" Tags="" Description="Returns box_id,serial"/>
+        </Category>
+        <!--<Command Name="ApplyConnectivityChanges" DisplayName="ApplyConnectivityChanges" Tags="allow_unreserved">-->
+            <!--<Parameters>-->
+                <!--<Parameter Name="request" Type="String" Mandatory = "True" DefaultValue="" Description=""/>-->
+            <!--</Parameters>-->
+        <!--</Command>-->
+
+                <Command Name="add_chassis_to_cluster_master" DisplayName="Add Chassis to Cluster Master" Description="Adds chassis and serials to cluster DB for all nodes">
+                </Command>
+        <Command Name="create_cluster" DisplayName="Create Cluster" Description="Enables cluster on this device with given parameters">
+                <Parameters>
+                    <Parameter Name="interface" DisplayName="Stack_Mgmt Interface" Type="Lookup" Mandatory = "True" AllowedValues="eth0,eth2"  DefaultValue="eth0"
+                               Description="Interface to configure as the Stack_Mgmt Interface"/>
+                    <Parameter Name="cluster_id" DisplayName="Cluster ID" Type="String" Mandatory = "True"  DefaultValue=""
+                               Description="Cluster ID to set"/>
+                    <Parameter Name="cluster_name" DisplayName="Cluster Name" Type="String" Mandatory = "True"  DefaultValue=""
+                               Description="Name of the cluster"/>
+                    <Parameter Name="master_preference" DisplayName="Master Preference" Type="String" Mandatory = "True"  DefaultValue=""
+                               Description="Cluster priority value"/>
+                    <Parameter Name="master_vip" DisplayName="Master Address VIP" Type="String" Mandatory = "True"  DefaultValue=""
+                               Description="Address for the master VIP"/>
+
+                </Parameters>
+        </Command>
+
+        <Command Name="apply_text_config" DisplayName="Apply Config" Description="Applies the selected config from tftp">
+            <Parameters>
+                <Parameter Name="path" DisplayName="File Path" Type="String" Mandatory="True" Description="Full path on ftp to the config file"/>
+            </Parameters>
+        </Command>
+        <Command Name="save_text_config" DisplayName="Save Config" Description="Saves current config to ftp">
+            <Parameters>
+                <Parameter Name="file_name" DisplayName="File Name" Type="String" Mandatory="True" Description="Name of config file [.txt]"/>
+            </Parameters>
+        </Command>
+
     </Layout>
 </Driver>

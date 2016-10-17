@@ -426,6 +426,283 @@ class GigamonDriver (ResourceDriverInterface):
 
     # </editor-fold>
 
+    def create_cluster(self, context, cancellation_context, interface, cluster_id, cluster_name, master_preference,
+                       master_vip):
+        """
+        Enables cluster on the device with the input settings
+        :param context:
+        :param cancellation_context:
+        :param interface:
+        :param cluster_id:
+        :param cluster_name:
+        :param master_preference:
+        :param master_vip:
+        :return:
+        """
+        self._log(context, 'GigamonDriver create_cluster called\r\n')
+
+        try:
+            int(cluster_id)
+        except ValueError as ex:
+            ex.message = 'Cluster ID must be an integer value'
+            raise ex
+
+        try:
+            int(master_preference)
+        except ValueError as ex:
+            ex.message = 'Master Preference must be an integer value'
+            raise ex
+
+        ip_pattern = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
+
+        try:
+            address, subnet = master_vip.split(' ')
+
+        except ValueError as ex:
+            ex.message = "Master Address VIP must be in format: [IP address] /[Mask]"
+            raise ex
+
+        ip_match = re.match(ip_pattern, address)
+        subnet_pattern = r"^/\d{2}$"
+        subnet_match = re.match(subnet_pattern, subnet)
+        if ip_match is None or subnet_match is None:
+            ex = ValueError()
+            ex.message = "Master Address VIP must be in format: [IP address] /[Mask]"
+            raise ex
+
+        api = CloudShellAPISession(context.connectivity.server_address,
+                                   token_id=context.connectivity.admin_auth_token,
+                                   port=context.connectivity.cloudshell_api_port,
+                                   domain=context.reservation.domain)
+
+        ssh, channel, _ = self._connect(context)
+        self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
+        try:
+            # if self.fakedata:
+            #     path = 'fakepath/fakename_fakemodel.txt'
+            # else:
+            #     self._log(context, 'Attributes: %s' % str(context.resource.attributes))
+            #     model = context.resource.attributes.get('Model', '')
+            #     if not model:
+            #         model = context.resource.model
+            #     path = '%s/%s_%s.txt' % (folder_path if not folder_path.endswith('/') else folder_path[0:-1],
+            #                             context.resource.name.replace(' ', '-'),
+            #                             model.replace(' ', '-'))
+            self._ssh_command(context, ssh, channel, 'cluster interface ' + interface, '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'cluster id ' + cluster_id, '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'cluster name ' + cluster_name, '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'cluster master preference ' + master_preference, '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'cluster master address vip ' + master_vip, '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'cluster enable', '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'write mem', '[^[#]# ')
+
+        except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to create cluster: %s' % str(e))
+            raise e
+        finally:
+            self._ssh_command(context, ssh, channel, 'exit', '[^[#]# ')
+            self._disconnect(context, ssh, channel)
+            api.SetResourceLiveStatus(context.resource.fullname, 'Online', 'Enabled Cluster')
+
+    def add_chassis_to_cluster_master(self, context, cancellation_context):
+        """
+
+        :type context: ResourceCommandContext
+        :param cancellation_context:
+        :return:
+        """
+        self._log(context, 'GigamonDriver get box id and serial number')
+
+        api = CloudShellAPISession(context.connectivity.server_address,
+                                   token_id=context.connectivity.admin_auth_token,
+                                   port=context.connectivity.cloudshell_api_port,
+                                   domain=context.reservation.domain)
+
+        chassis_ids = []
+        resv_det = api.GetReservationDetails(context.reservation.reservation_id)
+
+        for resource in resv_det.ReservationDescription.Resources:
+            if resource.ResourceModelName == 'GigaVUE-OS' and resource.Name != context.resource.name:
+                command_result = api.ExecuteCommand(context.reservation.reservation_id, resource.Name, 'Resource',
+                                                    'get_box_id')
+
+                chassis_ids.append(command_result.Output)
+
+        ssh, channel, _ = self._connect(context)
+        self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
+        try:
+            for id in chassis_ids:
+                box_id, serial = id.split(',')
+                self._ssh_command(context, ssh, channel, 'chassis box-id ' + box_id + ' serial-num ' + serial, '[^[#]# ')
+
+        except Exception as e:
+            raise e
+        finally:
+            self._ssh_command(context, ssh, channel, 'exit', '[^[#]# ')
+            self._disconnect(context, ssh, channel)
+            api.SetResourceLiveStatus(context.resource.fullname, 'Online', 'Added Chassis to cluster master')
+
+
+    def get_box_id(self, context, cancellation_context):
+        """
+        Enables cluster on the device with the input settings
+        :type context: ResourceCommandContext
+        :param cancellation_context:
+        :return:
+        """
+
+        self._log(context, 'GigamonDriver get box id and serial number')
+
+        api = CloudShellAPISession(context.connectivity.server_address,
+                                    token_id=context.connectivity.admin_auth_token,
+                                    port=context.connectivity.cloudshell_api_port,
+                                    domain=context.reservation.domain)
+
+        box_id = context.resource.attributes['BoxID']
+
+        res_det = api.GetResourceDetails(context.resource.name)
+
+        chassis = None
+        for child in res_det.ChildResources:
+            if child.ResourceModelName == 'Generic Chassis':
+                chassis = child
+        serial_number = None
+        for attribute in chassis.ResourceAttributes:
+            if attribute.Name == 'Serial Number':
+                serial_number = attribute.Value
+        return box_id + ',' + serial_number
+
+    def _get_ftp(api, context):
+        """
+
+        :type api: CloudShellAPISession
+        :type reservation:  ReservationContextDetails
+        :return:
+        """
+        resv_det = api.GetReservationDetails(context.reservation.reservation_id)
+
+        server = None
+        user = None
+        password = None
+        for resource in resv_det.ReservationDescription.Resources:
+            if resource.ResourceModelName.lower() == 'generic tftp server':
+                server = resource.FullAddress
+                res_det = api.GetResourceDetails(resource.Name)
+                for attribute in res_det.ResourceAttributes:
+                    if attribute.Name == 'Storage username':
+                        user = attribute.Value
+                    if attribute.Name == 'Storage password':
+                        password = attribute.Value
+
+        return server, user, password
+
+    def save_text_config(self, context, cancellation_context, file_name):
+        """
+        Applies text configuration to the device
+        :param context:
+        :param cancellation_context:
+        :param file_name: name of file to save
+        :return:
+        """
+
+        self._log(context,
+                  'apply text config called with inputs file_name=%s' % (
+                  file_name))
+
+        file_name = file_name.replace('.cfg', '.txt')
+        api = CloudShellAPISession(context.connectivity.server_address,
+                                   token_id=context.connectivity.admin_auth_token,
+                                   port=context.connectivity.cloudshell_api_port,
+                                   domain=context.reservation.domain)
+        ftp, user, password = self._get_ftp(api, context)
+        path = 'ftp://' + user + ':' + password + '@' + ftp +'/Configs/Devices/' + context.resource.name + '/' + \
+               file_name
+
+
+
+        api.SetResourceLiveStatus(context.resource.fullname, 'Progress 10', 'Saving config')
+
+        ssh, channel, _ = self._connect(context)
+        m = []
+        m.append(self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# '))
+        try:
+            try:
+                # delete existing file if it exists
+                m.append(self._ssh_command(context, ssh, channel, 'configuration text generate active running save ' +
+                                           file_name, '[^[#]# '))
+            except Exception as e:
+                m.append(str(e))
+
+            try:
+                m.append(self._ssh_command(context, ssh, channel, 'configuration text file ' + file_name + ' upload ' +
+                                           path, '[^[#]# '))
+            except Exception as e:
+                m.append(str(e))
+
+            try:
+                m.append(self._ssh_command(context, ssh, channel, 'configuration text file ' + file_name + ' delete',
+                                           '[^[#]# '))
+            except Exception as e:
+                m.append(str(e))
+        except Exception as e2:
+            m.append(str(e2))
+            api.SetResourceLiveStatus(context.resource.fullname, 'Error', 'Failed to save config: %s' % '\n'.join(m))
+            raise e2
+        finally:
+            api.SetResourceLiveStatus(context.resource.fullname, 'Online', 'Saved text config')
+            self._ssh_command(context, ssh, channel, 'exit', '[^[#]# ')
+            self._disconnect(context, ssh, channel)
+
+    def apply_text_config(self, context, cancellation_context, path):
+        """
+        Applies text configuration to the device
+        :param context:
+        :param cancellation_context:
+        :param path: path on FTP to the file
+        :return:
+        """
+
+        self._log(context,
+                  'apply text config called with inputs path=%s' % (
+                      path))
+        api = CloudShellAPISession(context.connectivity.server_address,
+                                   token_id=context.connectivity.admin_auth_token,
+                                   port=context.connectivity.cloudshell_api_port,
+                                   domain=context.reservation.domain)
+        ftp, user, password = self._get_ftp(api, context)
+        path = 'tftp://' + ftp + '/' + path
+        path = path.replace('.cfg', '.txt')
+
+
+
+        api.SetResourceLiveStatus(context.resource.fullname, 'Progress 10', 'Applying config')
+
+        ssh, channel, _ = self._connect(context)
+        m = []
+        m.append(self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# '))
+        try:
+            try:
+                # delete existing file if it exists
+                m.append(self._ssh_command(context, ssh, channel, 'configuration text fetch ' + path + ' apply',
+                                           '[^[#]# '))
+            except Exception as e:
+                m.append(str(e))
+
+            try:
+                m.append(self._ssh_command(context, ssh, channel, 'write mem', '[^[#]# '))
+            except Exception as e:
+                m.append(str(e))
+
+        except Exception as e2:
+            m.append(str(e2))
+            api.SetResourceLiveStatus(context.resource.fullname, 'Error',
+                                      'Failed to load config: %s' % '\n'.join(m))
+            raise e2
+        finally:
+            api.SetResourceLiveStatus(context.resource.fullname, 'Online', 'Loaded text config')
+            self._ssh_command(context, ssh, channel, 'exit', '[^[#]# ')
+            self._disconnect(context, ssh, channel)
+
     # <editor-fold desc="Orchestration Save and Restore Standard">
     def orchestration_save(self, context, cancellation_context, mode, custom_params=None):
         """
