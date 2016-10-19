@@ -572,7 +572,7 @@ class GigamonDriver (ResourceDriverInterface):
                 serial_number = attribute.Value
         return box_id + ',' + serial_number
 
-    def _get_ftp(api, context):
+    def _get_ftp(self, api, context):
         """
 
         :type api: CloudShellAPISession
