@@ -60,7 +60,7 @@
                            Description="Firmware local file name or URL (including tftp://, ftp://, http://, etc.)"/>
             </Parameters>
         </Command>
-        <Command Name="reset" DisplayName="Reset" Tags="" Description="Resets the device to factory settings"/>
+
             <Command Name="get_box_id" Tags="" Description="Returns box_id,serial"/>
         </Category>
         <!--<Command Name="ApplyConnectivityChanges" DisplayName="ApplyConnectivityChanges" Tags="allow_unreserved">-->
@@ -97,6 +97,7 @@
                 <Parameter Name="file_name" DisplayName="File Name" Type="String" Mandatory="True" Description="Name of config file [.txt]"/>
             </Parameters>
         </Command>
+        <Command Name="reset" DisplayName="Reset" Tags="" Description="Resets the device to factory settings"/>
 
     </Layout>
 </Driver>
