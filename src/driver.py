@@ -25,7 +25,6 @@ import time
 # paramiko = None
 import paramiko
 
-
 class GigamonDriver (ResourceDriverInterface):
 
     def __init__(self):
@@ -685,8 +684,13 @@ class GigamonDriver (ResourceDriverInterface):
                 # delete existing file if it exists
                 m.append(self._ssh_command(context, ssh, channel, 'configuration text fetch ' + path + ' apply',
                                            '[^[#]# '))
+
             except Exception as e:
                 m.append(str(e))
+                if 'File already exists' in str(e) or 'File not found' in str(e):
+                    api.SetResourceLiveStatus(context.resource.fullname, 'Error',
+                                      'Failed to load config: %s' % '\n'.join(m))
+                    raise e
 
             try:
                 m.append(self._ssh_command(context, ssh, channel, 'write mem', '[^[#]# '))
