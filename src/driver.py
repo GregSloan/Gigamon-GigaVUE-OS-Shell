@@ -152,11 +152,19 @@ class GigamonDriver (ResourceDriverInterface):
                                    port=context.connectivity.cloudshell_api_port,
                                    domain=domain)
 
-        ssh, channel, o = self._ssh_connect(context, context.resource.address,
-                              22,
-                              context.resource.attributes['User'],
-                              api.DecryptPassword(context.resource.attributes['Password']).Value,
-                              '>|security purposes')
+        try:
+
+
+
+            ssh, channel, o = self._ssh_connect(context, context.resource.address,
+                                  22,
+                                  context.resource.attributes['User'],
+                                  api.DecryptPassword(context.resource.attributes['Password']).Value,
+                                  '>|security purposes')
+        except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to create cluster: %s' % str(e))
+            self._log(context, 'Error creating SSH connection. Error: ' + str(e))
+            raise e
 
         if 'security purposes' in o:
             raise Exception('Switch password needs to be initialized: %s' % o)
@@ -206,7 +214,11 @@ class GigamonDriver (ResourceDriverInterface):
 
         api.SetResourceLiveStatus(context.resource.fullname,  'Progress 10', 'Restoring config')
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
+
         m = []
         m.append(self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# '))
         try:
@@ -284,7 +296,10 @@ class GigamonDriver (ResourceDriverInterface):
                                    domain=context.reservation.domain)
         api.SetResourceLiveStatus(context.resource.fullname,  'Progress 10', 'Saving config')
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
         try:
             if self.fakedata:
@@ -320,7 +335,10 @@ class GigamonDriver (ResourceDriverInterface):
                                    port=context.connectivity.cloudshell_api_port,
                                    domain=context.reservation.domain)
         api.SetResourceLiveStatus(context.resource.fullname,  'Progress 10', 'Loading firmware %s' % file_path)
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
         try:
             if '://' in file_path:
                 self._ssh_command(context, ssh, channel, 'image fetch %s' % file_path, '[^[#]# ')
@@ -380,7 +398,10 @@ class GigamonDriver (ResourceDriverInterface):
         :return: the command result text
         :rtype: str
         """
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
         try:
             self._ssh_command(context, ssh, channel, custom_command, '[^[#]# ')
         finally:
@@ -396,7 +417,10 @@ class GigamonDriver (ResourceDriverInterface):
         :rtype: str
         """
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
         try:
             self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
             rv = self._ssh_command(context, ssh, channel, custom_command, '[^[#]# ')
@@ -426,7 +450,10 @@ class GigamonDriver (ResourceDriverInterface):
 
         api.SetResourceLiveStatus(context.resource.fullname,  'Progress 10', 'Resetting switch')
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
         self._ssh_command(context, ssh, channel, 'no cluster ena', '[^[#]# ')
         self._ssh_command(context, ssh, channel, 'reset factory only-traffic', ': ')
@@ -471,7 +498,10 @@ class GigamonDriver (ResourceDriverInterface):
 
         self._log(context, 'Returned BoxId: {0} and serial {1}'.format(boxid, serial))
         try:
-            ssh, channel, _ = self._connect(context)
+            try:
+                ssh, channel, _ = self._connect(context)
+            except Exception as e:
+                raise e
             self._log(context, 'Connected to device')
             self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
             self._ssh_command(context, ssh, channel, 'chassis box-id {0} serial-num {1}'.format(boxid, serial), '[^[#]# ')
@@ -538,7 +568,10 @@ class GigamonDriver (ResourceDriverInterface):
                                    port=context.connectivity.cloudshell_api_port,
                                    domain=context.reservation.domain)
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
         try:
             # if self.fakedata:
@@ -594,12 +627,8 @@ class GigamonDriver (ResourceDriverInterface):
 
         try:
             ssh, channel, _ = self._connect(context)
-
         except Exception as e:
-            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to create cluster: %s' % str(e))
-            self._log(context, 'Error creating SSH connection. Error: ' + str(e))
             raise e
-
 
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
         try:
@@ -698,7 +727,11 @@ class GigamonDriver (ResourceDriverInterface):
 
         api.SetResourceLiveStatus(context.resource.fullname, 'Progress 10', 'Saving config')
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
+
         m = []
         m.append(self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# '))
         try:
@@ -753,7 +786,10 @@ class GigamonDriver (ResourceDriverInterface):
 
         api.SetResourceLiveStatus(context.resource.fullname, 'Progress 10', 'Applying config')
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
         m = []
         m.append(self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# '))
         try:
@@ -970,7 +1006,10 @@ class GigamonDriver (ResourceDriverInterface):
            return AutoLoadDetails(sub_resources,attributes)
         '''
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+        except Exception as e:
+            raise e
         sub_resources = []
         attributes = [AutoLoadAttribute('', "Vendor", 'Gigamon')]
 
