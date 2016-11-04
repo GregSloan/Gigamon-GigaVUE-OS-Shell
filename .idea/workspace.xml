@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1f9a411c-f038-40bc-aabe-dc17448206bf" name="Default" comment="Add 'card all' step at end of Add Chassis To Master">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/driver.py" afterPath="$PROJECT_DIR$/src/driver.py" />
     </list>
     <ignored path="Gigamon-GigaVUE-OS-Shell.iws" />
@@ -41,8 +40,8 @@
       <file leaf-file-name="driver.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/driver.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.8727915">
-              <caret line="420" column="38" selection-start-line="420" selection-start-column="30" selection-end-line="420" selection-end-column="38" />
+            <state vertical-scroll-proportion="-0.5689046">
+              <caret line="707" column="23" selection-start-line="707" selection-start-column="16" selection-end-line="707" selection-end-column="23" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -805,8 +804,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/driver.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.8727915">
-          <caret line="420" column="38" selection-start-line="420" selection-start-column="30" selection-end-line="420" selection-end-column="38" />
+        <state vertical-scroll-proportion="-0.5689046">
+          <caret line="707" column="23" selection-start-line="707" selection-start-column="16" selection-end-line="707" selection-end-column="23" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>

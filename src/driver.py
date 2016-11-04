@@ -330,6 +330,8 @@ class GigamonDriver (ResourceDriverInterface):
         :param str remote_host: path to tftp server where firmware file is stored
         :param str file_path: firmware file name
         """
+
+        self._log(context, 'load_firmware: File - {0} | remote_host - {1}'.format(file_path, remote_host))
         api = CloudShellAPISession(context.connectivity.server_address,
                                    token_id=context.connectivity.admin_auth_token,
                                    port=context.connectivity.cloudshell_api_port,
