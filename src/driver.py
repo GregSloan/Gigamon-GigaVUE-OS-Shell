@@ -781,8 +781,25 @@ class GigamonDriver (ResourceDriverInterface):
                                    port=context.connectivity.cloudshell_api_port,
                                    domain=context.reservation.domain)
         ftp, user, password = self._get_ftp(api, context)
+        if 'Devices' in path:
+            split_path = path.split('/')
+            if path[-2] != context.resource.name:
+                self._log(context, 'Config path not valid for this resource.')
+                raise ValueError("""Config path not valid for this resource.
+                Resource: """ + context.resource.name + """
+                Path: """ + path)
+
+        elif 'Models' in path:
+            split_pat = path.split('/')
+            if path(-2) != context.resource.attributes.get('Model', ''):
+                self._log(context, 'Config path not valid for this resource model.')
+
+                raise ValueError("""Config path not valid for this resource.
+                Resource Model: """ + context.resource.attributes.get('Model', '') + """
+                Path: """ + path)
         path = 'tftp://' + ftp + '/' + path
         path = path.replace('.cfg', '.txt')
+
 
 
 
