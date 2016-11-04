@@ -1019,10 +1019,17 @@ class GigamonDriver (ResourceDriverInterface):
             if 'Version summary:' in line:
                 attributes.append(AutoLoadAttribute('', "OS Version", line.replace('Version summary:', '').strip()))
             if 'Product model:' in line:
-                m = line.replace('Product model:', '').strip()
-                m = {
-                    'gvcc2': 'GigaVUE-HD8',
-                }.get(m, m)
+                if 'gigavuevm' not in line:
+                    m = line.replace('Product model:', '').strip()
+                    m = {
+                        'gvcc2': 'GigaVUE-HD8',
+                    }.get(m, m)
+
+                else:
+                    if 'hc' in context.resource.model.lower():
+                        model = 'gigavuehcvm'
+                    if 'hd' in context.resource.model.lower():
+                        model = 'gigavuehdvm'
                 attributes.append(AutoLoadAttribute('', "Model", m))
 
         chassisaddr = 'bad_chassis_addr'
