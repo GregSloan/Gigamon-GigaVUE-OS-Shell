@@ -561,6 +561,7 @@ class GigamonDriver (ResourceDriverInterface):
 
         except Exception as e:
             api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to create cluster: %s' % str(e))
+            self._log(context, 'Error creating SSH connection. Error: ' + str(e))
             raise e
         finally:
             self._ssh_command(context, ssh, channel, 'exit', '[^[#]# ')
@@ -591,19 +592,30 @@ class GigamonDriver (ResourceDriverInterface):
 
                 chassis_ids.append(command_result.Output)
 
-        ssh, channel, _ = self._connect(context)
+        try:
+            ssh, channel, _ = self._connect(context)
+
+        except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to create cluster: %s' % str(e))
+            self._log(context, 'Error creating SSH connection. Error: ' + str(e))
+            raise e
+
+
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
         try:
             for id in chassis_ids:
                 box_id, serial = id.split(',')
                 self._ssh_command(context, ssh, channel, 'chassis box-id ' + box_id + ' serial-num ' + serial, '[^[#]# ')
 
+            self._ssh_command(context, ssh, channel, 'card all', '[^[#]# ')
         except Exception as e:
             raise e
         finally:
             self._ssh_command(context, ssh, channel, 'exit', '[^[#]# ')
             self._disconnect(context, ssh, channel)
             api.SetResourceLiveStatus(context.resource.fullname, 'Online', 'Added Chassis to cluster master')
+
+
 
 
     def get_box_id(self, context, cancellation_context):
