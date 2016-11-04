@@ -332,6 +332,38 @@ class GigamonDriver (ResourceDriverInterface):
             self._ssh_command(context, ssh, channel, 'image boot next', '[^[#]# ')
 
             self._ssh_command(context, ssh, channel, 'image delete %s' % (os.path.basename(file_path)), '[^[#]# ')
+            resp = self._ssh_command(context, ssh, channel, 'reload', '\[no]|\[yes]')
+            if '[yes]' in resp:
+                self._ssh_command(context, ssh, channel, 'yes', '\[no]')
+            self._ssh_command(context, ssh, channel, 'yes', '.')
+
+            try:
+                self._disconnect(context, ssh, channel)
+            except:
+                pass
+            self._log(context, 'Waiting 30 seconds...')
+            time.sleep(30)
+
+            retries = 0
+            success = False
+            while retries < 30:
+                try:
+                    self._log(context, 'Trying to connect...')
+                    ssh, channel, _ = self._connect(context)
+                    self._log(context, 'Reconnected to device')
+                    self._disconnect(context, ssh, channel)
+                    success = True
+                    break
+                except Exception as e:
+                    self._log(context, 'Not ready: ' + str(e))
+                    self._log(context, 'Waiting 10 seconds...')
+                    time.sleep(10)
+                    retries += 1
+            if not success:
+                api.SetResourceLiveStatus(context.resource.fullname, 'Error',
+                                      'Switch did not come up within 5 minutes after reset')
+
+                raise Exception('Device did not come up within 5 minutes after reset')
 
             api.SetResourceLiveStatus(context.resource.fullname,  'Online', 'Loaded firmware %s at %s' % (file_path, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())))
         except Exception as e:
@@ -396,7 +428,7 @@ class GigamonDriver (ResourceDriverInterface):
 
         ssh, channel, _ = self._connect(context)
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
-
+        self._ssh_command(context, ssh, channel, 'no cluster ena', '[^[#]# ')
         self._ssh_command(context, ssh, channel, 'reset factory only-traffic', ': ')
         self._ssh_command(context, ssh, channel, 'YES', '.')
         try:
@@ -424,6 +456,38 @@ class GigamonDriver (ResourceDriverInterface):
         raise Exception('Device did not come up within 5 minutes after reset')
 
     # </editor-fold>
+
+    def restore_device_id(self, context, cancellation_context):
+        api = CloudShellAPISession(context.connectivity.server_address,
+                                   token_id=context.connectivity.admin_auth_token,
+                                   port=context.connectivity.cloudshell_api_port,
+                                   domain=context.reservation.domain)
+
+        api.SetResourceLiveStatus(context.resource.fullname, 'Progress 10', 'Restoring box-id and serial number')
+
+        boxid_result = self.get_box_id(context, cancellation_context).split(',')
+        boxid = boxid_result[0]
+        serial = boxid_result[1]
+
+        self._log(context, 'Returned BoxId: {0} and serial {1}'.format(boxid, serial))
+        try:
+            ssh, channel, _ = self._connect(context)
+            self._log(context, 'Connected to device')
+            self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'chassis box-id {0} serial-num {1}'.format(boxid, serial), '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'card all', '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'write mem', '[^[#]# ')
+
+
+
+            api.SetResourceLiveStatus(context.resource.fullname, 'Online', 'Device ID Restored')
+
+        except Exception as exc:
+            self._log(context, 'Failed to restore box id: ' + str(exc))
+            api.SetReservationLiveStatus(context.resource.fullname, 'Error', 'Failed to restore box Id. Error: ' +
+                                         str(exc))
+        finally:
+            self._disconnect(context, ssh, channel)
 
     def create_cluster(self, context, cancellation_context, interface, cluster_id, cluster_name, master_preference,
                        master_vip):
@@ -556,11 +620,11 @@ class GigamonDriver (ResourceDriverInterface):
                                     token_id=context.connectivity.admin_auth_token,
                                     port=context.connectivity.cloudshell_api_port,
                                     domain=context.reservation.domain)
-
+        self._log(context, 'Connected to CloudShellAPI')
         box_id = context.resource.attributes['BoxID']
 
         res_det = api.GetResourceDetails(context.resource.name)
-
+        self._log(context, 'Retrieved resource details')
         chassis = None
         for child in res_det.ChildResources:
             if child.ResourceModelName == 'Generic Chassis':
@@ -569,6 +633,7 @@ class GigamonDriver (ResourceDriverInterface):
         for attribute in chassis.ResourceAttributes:
             if attribute.Name == 'Serial Number':
                 serial_number = attribute.Value
+        self._log(context, 'Completed finding ID')
         return box_id + ',' + serial_number
 
     def _get_ftp(self, api, context):

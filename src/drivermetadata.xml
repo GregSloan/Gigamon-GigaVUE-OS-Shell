@@ -62,6 +62,7 @@
         </Command>
 
             <Command Name="get_box_id" Tags="" Description="Returns box_id,serial"/>
+
         </Category>
         <!--<Command Name="ApplyConnectivityChanges" DisplayName="ApplyConnectivityChanges" Tags="allow_unreserved">-->
             <!--<Parameters>-->
@@ -98,6 +99,6 @@
             </Parameters>
         </Command>
         <Command Name="reset" DisplayName="Reset" Tags="" Description="Resets the device to factory settings"/>
-
+        <Command Name="restore_device_id" DisplayName="Restore Device ID" Tags="" Description="Applies box id and serial after factory reset"/>
     </Layout>
 </Driver>
