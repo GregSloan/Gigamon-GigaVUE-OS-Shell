@@ -639,6 +639,7 @@ class GigamonDriver (ResourceDriverInterface):
                 self._ssh_command(context, ssh, channel, 'chassis box-id ' + box_id + ' serial-num ' + serial, '[^[#]# ')
 
             self._ssh_command(context, ssh, channel, 'card all', '[^[#]# ')
+            self._ssh_command(context, ssh, channel, 'wr mem', '[^[#]# ')
         except Exception as e:
             raise e
         finally:
@@ -783,15 +784,15 @@ class GigamonDriver (ResourceDriverInterface):
         ftp, user, password = self._get_ftp(api, context)
         if 'Devices' in path:
             split_path = path.split('/')
-            if path[-2] != context.resource.name:
+            if split_path[-2] != context.resource.name:
                 self._log(context, 'Config path not valid for this resource.')
                 raise ValueError("""Config path not valid for this resource.
                 Resource: """ + context.resource.name + """
                 Path: """ + path)
 
         elif 'Models' in path:
-            split_pat = path.split('/')
-            if path(-2) != context.resource.attributes.get('Model', ''):
+            split_path = path.split('/')
+            if split_path[-2] != context.resource.attributes.get('Model', ''):
                 self._log(context, 'Config path not valid for this resource model.')
 
                 raise ValueError("""Config path not valid for this resource.
