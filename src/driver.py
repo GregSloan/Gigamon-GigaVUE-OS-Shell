@@ -162,7 +162,6 @@ class GigamonDriver (ResourceDriverInterface):
                                   api.DecryptPassword(context.resource.attributes['Password']).Value,
                                   '>|security purposes')
         except Exception as e:
-            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to create cluster: %s' % str(e))
             self._log(context, 'Error creating SSH connection. Error: ' + str(e))
             raise e
 
@@ -217,6 +216,7 @@ class GigamonDriver (ResourceDriverInterface):
         try:
             ssh, channel, _ = self._connect(context)
         except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to connect to resource: %s' % str(e))
             raise e
 
         m = []
@@ -299,6 +299,7 @@ class GigamonDriver (ResourceDriverInterface):
         try:
             ssh, channel, _ = self._connect(context)
         except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to connect to resource: %s' % str(e))
             raise e
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
         try:
@@ -340,6 +341,7 @@ class GigamonDriver (ResourceDriverInterface):
         try:
             ssh, channel, _ = self._connect(context)
         except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to connect to resource: %s' % str(e))
             raise e
         try:
             if '://' in file_path:
@@ -573,6 +575,7 @@ class GigamonDriver (ResourceDriverInterface):
         try:
             ssh, channel, _ = self._connect(context)
         except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to connect to resource: %s' % str(e))
             raise e
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
         try:
@@ -630,6 +633,7 @@ class GigamonDriver (ResourceDriverInterface):
         try:
             ssh, channel, _ = self._connect(context)
         except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to connect to resource: %s' % str(e))
             raise e
 
         self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# ')
@@ -733,6 +737,7 @@ class GigamonDriver (ResourceDriverInterface):
         try:
             ssh, channel, _ = self._connect(context)
         except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to connect to resource: %s' % str(e))
             raise e
 
         m = []
@@ -809,6 +814,7 @@ class GigamonDriver (ResourceDriverInterface):
         try:
             ssh, channel, _ = self._connect(context)
         except Exception as e:
+            api.SetResourceLiveStatus(context.resource.fullname,  'Error', 'Failed to connect to resource: %s' % str(e))
             raise e
         m = []
         m.append(self._ssh_command(context, ssh, channel, 'configure terminal', '[^[#]# '))
@@ -1037,6 +1043,7 @@ class GigamonDriver (ResourceDriverInterface):
             if 'Version summary:' in line:
                 attributes.append(AutoLoadAttribute('', "OS Version", line.replace('Version summary:', '').strip()))
             if 'Product model:' in line:
+                self._log(context, 'Product model: ' + line)
                 if 'gigavuevm' not in line:
                     m = line.replace('Product model:', '').strip()
                     m = {
@@ -1044,10 +1051,11 @@ class GigamonDriver (ResourceDriverInterface):
                     }.get(m, m)
 
                 else:
+                    self._log(context, 'resource model: ' + context.resource.model.lower())
                     if 'hc' in context.resource.model.lower():
-                        model = 'gigavuehcvm'
+                        m = 'gigavuehcvm'
                     if 'hd' in context.resource.model.lower():
-                        model = 'gigavuehdvm'
+                        m = 'gigavuehdvm'
                 attributes.append(AutoLoadAttribute('', "Model", m))
 
         chassisaddr = 'bad_chassis_addr'
